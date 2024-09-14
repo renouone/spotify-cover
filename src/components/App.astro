@@ -1,0 +1,15 @@
+---
+import Form from './Form.astro';
+import Cover from './Cover.astro';
+
+const { imageUrl } = Astro.props;
+
+let source = "https://placehold.co/300x300";
+---
+
+<div
+	class="grid gap-4 p-4"
+>
+	<Cover source={source} />
+	<Form />
+</div>

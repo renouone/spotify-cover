@@ -1,0 +1,93 @@
+---
+const { API_URL, CLIENT_ID, CLIENT_SECRET, SCOPE } = await import.meta.env;
+
+const getToken = async () => {
+	const response = await fetch(API_URL, {
+		method: "POST",
+		body: `grant_type=${SCOPE}&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`,
+		headers: {
+			"Content-Type": "application/x-www-form-urlencoded",
+		},
+	});
+
+	const data = await response.json();
+	return data.access_token;
+}
+
+const token = await getToken();
+---
+
+<form 
+	method="POST"
+	id="spotifyForm"
+	class="grid gap-4 form-inline" 
+>
+	<input 
+		type="text"
+		name="input" 
+		id="input" 
+		placeholder="https://open.spotify.com/album/46a3UqOvxQjuBJEbpAC03w"
+		pattern=".*\.spotify\..*"
+		class="min-w-0 flex-auto rounded-md border-0 bg-white/5 px-3.5 py-2 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+		autofocus
+		required 
+	/>
+	<button 
+		class="flex-none rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+	>Get cover</button>
+</form>
+
+<script define:vars={{ token }}>
+
+const formElement = document.getElementById('spotifyForm');
+const inputElement = document.getElementById('input');
+const imgElement = document.getElementById('albumCover');
+
+if (!formElement || !inputElement || !imgElement) {
+	console.error('One or more DOM elements are missing');
+	return;
+}
+
+formElement.addEventListener('submit', async (event) => {
+	event.preventDefault();
+
+	const rawUrl = inputElement.value.trim();
+	if (!rawUrl) {
+		console.error('Input URL is empty');
+		return;
+	}
+
+	try {
+		const albumId = rawUrl.split('?')[0].split('/').pop();
+		if (!albumId) {
+			console.error('Invalid Spotify URL, album ID not found');
+			return;
+		}
+
+		const apiUrl = `https://api.spotify.com/v1/albums/${albumId}`;
+
+		const response = await fetch(apiUrl, {
+			headers: {
+				"Authorization": `Bearer ${token}`,
+			},
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to fetch album data: ${response.status} ${response.statusText}`);
+		}
+
+		const data = await response.json();
+		const imageUrl = data.images?.[0]?.url;
+
+		if (!imageUrl) {
+			console.error('Album cover image not found');
+			return;
+		}
+
+		imgElement.src = imageUrl;
+
+	} catch (error) {
+		console.error('Error fetching album cover:', error);
+	}
+});
+</script>
